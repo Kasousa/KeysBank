@@ -1,0 +1,486 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "KeysBank API",
+    "version": "1.0.0",
+    "description": "API robusta para gerenciamento de contas bancárias virtuais, transações e extratos",
+    "contact": {
+      "name": "KeysBank Support",
+      "url": "https://keysbank.com",
+      "email": "support@keysbank.com"
+    },
+    "license": {
+      "name": "Apache 2.0",
+      "url": "https://www.apache.org/licenses/LICENSE-2.0.html"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Servidor de Desenvolvimento"
+    },
+    {
+      "url": "https://api.keysbank.com",
+      "description": "Servidor de Produção"
+    }
+  ],
+  "paths": {
+    "/customers": {
+      "post": {
+        "tags": ["Customers"],
+        "summary": "Criar um novo cliente",
+        "description": "Cria um novo cliente no sistema bancário com nome e email únicos",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCustomerRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cliente criado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CustomerResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro na validação: email já existe ou dados inválidos"
+          },
+          "500": {
+            "description": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "/accounts": {
+      "post": {
+        "tags": ["Accounts"],
+        "summary": "Criar uma nova conta bancária",
+        "description": "Cria uma nova conta vinculada a um cliente existente. A conta recebe automaticamente um bônus de abertura de R$ 100,00",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateAccountRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Conta criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro: Cliente não encontrado ou cliente já possui conta"
+          },
+          "500": {
+            "description": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "/accounts/login": {
+      "get": {
+        "tags": ["Accounts"],
+        "summary": "Validar e fazer login em uma conta",
+        "description": "Valida as credenciais da conta (agência e número) e retorna o ID da conta para usar nos demais endpoints",
+        "parameters": [
+          {
+            "name": "agency",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "0001"
+            },
+            "description": "Número da agência bancária"
+          },
+          {
+            "name": "accountNumber",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "example": "343316"
+            },
+            "description": "Número da conta bancária"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Conta validada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conta não encontrada com os dados fornecidos"
+          },
+          "500": {
+            "description": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "/accounts/{accountId}/statement": {
+      "get": {
+        "tags": ["Statement"],
+        "summary": "Recuperar extrato da conta",
+        "description": "Retorna o extrato (lista de transações) de uma conta com suporte a filtros opcionais por data e tipo de transação",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "b837e6e2-1b3c-4267-825f-741fb798f066"
+            },
+            "description": "ID único da conta (UUID)"
+          },
+          {
+            "name": "startDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-01"
+            },
+            "description": "Data inicial do período (formato: YYYY-MM-DD)"
+          },
+          {
+            "name": "endDate",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "example": "2026-01-31"
+            },
+            "description": "Data final do período (formato: YYYY-MM-DD)"
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": ["CREDIT", "DEBIT", "BALANCE"],
+              "example": "CREDIT"
+            },
+            "description": "Filtrar por tipo de transação"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Extrato recuperado com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StatementItemResponse"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Conta não encontrada"
+          },
+          "400": {
+            "description": "Parâmetros inválidos"
+          },
+          "500": {
+            "description": "Erro interno do servidor"
+          }
+        }
+      }
+    },
+    "/transaction": {
+      "post": {
+        "tags": ["Transactions"],
+        "summary": "Criar uma nova transação",
+        "description": "Cria uma nova transação (depósito ou saque) em uma conta. O saldo diário é automaticamente recalculado após a transação.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransactionCreatedRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Transação criada com sucesso",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TransactionCreatedResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Erro na validação: dados inválidos ou conta não encontrada"
+          },
+          "500": {
+            "description": "Erro interno do servidor"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateCustomerRequest": {
+        "type": "object",
+        "required": ["name", "email"],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "example": "João Silva",
+            "description": "Nome completo do cliente"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "joao.silva@email.com",
+            "description": "Email único do cliente"
+          }
+        }
+      },
+      "CustomerResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "71475965-0ea9-46e7-87c7-ca98320189af",
+            "description": "ID único do cliente"
+          },
+          "name": {
+            "type": "string",
+            "example": "João Silva",
+            "description": "Nome completo do cliente"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "joao.silva@email.com",
+            "description": "Email do cliente"
+          }
+        }
+      },
+      "CreateAccountRequest": {
+        "type": "object",
+        "required": ["customerId"],
+        "properties": {
+          "customerId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "71475965-0ea9-46e7-87c7-ca98320189af",
+            "description": "ID do cliente proprietário da conta"
+          }
+        }
+      },
+      "AccountResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "b837e6e2-1b3c-4267-825f-741fb798f066",
+            "description": "ID único da conta"
+          },
+          "customerId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "71475965-0ea9-46e7-87c7-ca98320189af",
+            "description": "ID do cliente proprietário"
+          },
+          "agency": {
+            "type": "string",
+            "example": "0001",
+            "description": "Número da agência"
+          },
+          "accountNumber": {
+            "type": "string",
+            "example": "343316",
+            "description": "Número da conta"
+          },
+          "status": {
+            "type": "string",
+            "enum": ["ATIVA", "INATIVA"],
+            "example": "ATIVA",
+            "description": "Status da conta"
+          }
+        }
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "b837e6e2-1b3c-4267-825f-741fb798f066",
+            "description": "ID único da conta para usar nos endpoints"
+          },
+          "agency": {
+            "type": "string",
+            "example": "0001",
+            "description": "Número da agência"
+          },
+          "accountNumber": {
+            "type": "string",
+            "example": "343316",
+            "description": "Número da conta"
+          },
+          "customerName": {
+            "type": "string",
+            "example": "João Silva",
+            "description": "Nome do cliente"
+          }
+        }
+      },
+      "StatementItemResponse": {
+        "type": "object",
+        "properties": {
+          "transactionId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "description": "ID único da transação"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["CREDIT", "DEBIT", "BALANCE"],
+            "example": "CREDIT",
+            "description": "Tipo de transação"
+          },
+          "category": {
+            "type": "string",
+            "example": "BONUS_ABERTURA",
+            "description": "Categoria da transação"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "example": 100.00,
+            "description": "Valor em reais"
+          },
+          "description": {
+            "type": "string",
+            "example": "Bônus de abertura de conta",
+            "description": "Descrição da transação"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-15T22:45:34.000Z",
+            "description": "Data e hora da transação"
+          }
+        }
+      },
+      "TransactionCreatedRequest": {
+        "type": "object",
+        "required": ["accountId", "type", "category", "amount", "description"],
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "b837e6e2-1b3c-4267-825f-741fb798f066",
+            "description": "ID da conta"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["CREDIT", "DEBIT"],
+            "example": "DEBIT",
+            "description": "Tipo de transação"
+          },
+          "category": {
+            "type": "string",
+            "example": "SAQUE",
+            "description": "Categoria da transação"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "minimum": 0.01,
+            "example": 50.00,
+            "description": "Valor em reais"
+          },
+          "description": {
+            "type": "string",
+            "example": "Saque no caixa eletrônico",
+            "description": "Descrição da transação"
+          }
+        }
+      },
+      "TransactionCreatedResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "example": "550e8400-e29b-41d4-a716-446655440000",
+            "description": "ID da transação"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["CREDIT", "DEBIT"],
+            "example": "DEBIT",
+            "description": "Tipo de transação"
+          },
+          "category": {
+            "type": "string",
+            "example": "SAQUE",
+            "description": "Categoria"
+          },
+          "amount": {
+            "type": "number",
+            "format": "decimal",
+            "example": 50.00,
+            "description": "Valor em reais"
+          },
+          "description": {
+            "type": "string",
+            "example": "Saque no caixa eletrônico",
+            "description": "Descrição"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2026-01-15T22:45:34.000Z",
+            "description": "Data/hora da criação"
+          }
+        }
+      }
+    }
+  }
+}

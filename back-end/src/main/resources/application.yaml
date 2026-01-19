@@ -1,0 +1,21 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: keysbankapi
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/bank
+    username: bankuser
+    password: bankpass
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+
+  flyway:
+    enabled: true
