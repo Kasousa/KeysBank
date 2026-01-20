@@ -1,0 +1,149 @@
+name: Deploy Backend - AWS EC2
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'back-end/**'
+      - '.github/workflows/deploy-backend.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'back-end/**'
+
+env:
+  AWS_REGION: us-east-1
+  EC2_INSTANCE_IP: ${{ secrets.EC2_INSTANCE_IP }}
+  EC2_USER: ec2-user
+  EC2_KEY_NAME: keysbank-ec2
+
+jobs:
+  build:
+    name: Build Backend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Run tests
+        working-directory: ./back-end
+        run: |
+          mvn clean test -q
+          echo "✅ Backend tests passed"
+
+      - name: Build application
+        working-directory: ./back-end
+        run: |
+          mvn clean package -DskipTests -q
+          echo "✅ Backend build successful"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-jar
+          path: back-end/target/keysbankapi-0.0.1-SNAPSHOT.jar
+          retention-days: 1
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-jar
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create EC2 key pair
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/keysbank-ec2.pem
+          chmod 600 ~/.ssh/keysbank-ec2.pem
+
+      - name: Deploy to EC2
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -i ~/.ssh/keysbank-ec2.pem \
+              ${{ env.EC2_USER }}@${{ env.EC2_INSTANCE_IP }} \
+              'bash /home/ec2-user/deploy-backend.sh' &
+
+          # Transferir JAR via SCP
+          scp -o StrictHostKeyChecking=no \
+              -i ~/.ssh/keysbank-ec2.pem \
+              keysbankapi-0.0.1-SNAPSHOT.jar \
+              ${{ env.EC2_USER }}@${{ env.EC2_INSTANCE_IP }}:/home/ec2-user/app/backend/
+
+          echo "✅ Backend deployed to EC2"
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          curl -f http://${{ env.EC2_INSTANCE_IP }}:8080/swagger-ui.html || {
+            echo "❌ Deployment verification failed"
+            exit 1
+          }
+          echo "✅ Deployment verified"
+
+      - name: Slack notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Backend deployment ${{ job.status }}"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author
+
+  rollback:
+    name: Rollback on Failure
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Create EC2 key pair
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/keysbank-ec2.pem
+          chmod 600 ~/.ssh/keysbank-ec2.pem
+
+      - name: Rollback deployment
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -i ~/.ssh/keysbank-ec2.pem \
+              ${{ env.EC2_USER }}@${{ env.EC2_INSTANCE_IP }} \
+              'bash /home/ec2-user/rollback-backend.sh'
+          echo "⚠️  Rollback executed"
+
+      - name: Send alert
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: '🚨 Backend deployment failed and rolled back',
+              attachments: [{
+                color: 'danger',
+                text: `Commit: ${{ github.sha }}\nAuthor: ${{ github.actor }}`
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}

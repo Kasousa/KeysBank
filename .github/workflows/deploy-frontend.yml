@@ -1,0 +1,155 @@
+name: Deploy Frontend - AWS EC2
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'front-end/**'
+      - '.github/workflows/deploy-frontend.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'front-end/**'
+
+env:
+  AWS_REGION: us-east-1
+  EC2_INSTANCE_IP: ${{ secrets.EC2_INSTANCE_IP }}
+  EC2_USER: ec2-user
+  BACKEND_URL: http://${{ secrets.EC2_INSTANCE_IP }}:8080
+
+jobs:
+  build:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: front-end/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./front-end
+        run: npm ci
+
+      - name: Run tests
+        working-directory: ./front-end
+        run: npm run test:ci
+        continue-on-error: true
+
+      - name: Build application
+        working-directory: ./front-end
+        env:
+          VITE_API_BASE_URL: ${{ env.BACKEND_URL }}
+        run: |
+          npm run build
+          echo "✅ Frontend build successful"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: front-end/dist
+          retention-days: 1
+
+  deploy:
+    name: Deploy to AWS EC2
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Create EC2 key pair
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/keysbank-ec2.pem
+          chmod 600 ~/.ssh/keysbank-ec2.pem
+
+      - name: Deploy to EC2
+        run: |
+          # Transferir arquivos via SCP
+          scp -o StrictHostKeyChecking=no \
+              -r -i ~/.ssh/keysbank-ec2.pem \
+              * \
+              ${{ env.EC2_USER }}@${{ env.EC2_INSTANCE_IP }}:/home/ec2-user/app/frontend/dist/
+
+          # Executar script de deploy
+          ssh -o StrictHostKeyChecking=no \
+              -i ~/.ssh/keysbank-ec2.pem \
+              ${{ env.EC2_USER }}@${{ env.EC2_INSTANCE_IP }} \
+              'bash /home/ec2-user/deploy-frontend.sh'
+
+          echo "✅ Frontend deployed to EC2"
+
+      - name: Verify deployment
+        run: |
+          sleep 5
+          curl -f http://${{ env.EC2_INSTANCE_IP }}:80/ || {
+            echo "❌ Deployment verification failed"
+            exit 1
+          }
+          echo "✅ Deployment verified"
+
+      - name: Slack notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Frontend deployment ${{ job.status }}"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
+          fields: repo,message,commit,author
+
+  rollback:
+    name: Rollback on Failure
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: failure()
+
+    steps:
+      - name: Create EC2 key pair
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.EC2_PRIVATE_KEY }}" > ~/.ssh/keysbank-ec2.pem
+          chmod 600 ~/.ssh/keysbank-ec2.pem
+
+      - name: Rollback deployment
+        run: |
+          ssh -o StrictHostKeyChecking=no \
+              -i ~/.ssh/keysbank-ec2.pem \
+              ${{ env.EC2_USER }}@${{ env.EC2_INSTANCE_IP }} \
+              'bash /home/ec2-user/rollback-frontend.sh'
+          echo "⚠️  Rollback executed"
+
+      - name: Send alert
+        uses: 8398a7/action-slack@v3
+        with:
+          status: custom
+          custom_payload: |
+            {
+              text: '🚨 Frontend deployment failed and rolled back',
+              attachments: [{
+                color: 'danger',
+                text: `Commit: ${{ github.sha }}\nAuthor: ${{ github.actor }}`
+              }]
+            }
+          webhook_url: ${{ secrets.SLACK_WEBHOOK }}
