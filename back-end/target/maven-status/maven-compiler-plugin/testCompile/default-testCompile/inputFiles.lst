@@ -1,1 +1,4 @@
 /Users/kaiquesantossousa/Projects/KeysBank/back-end/src/test/java/com/backend/keysbankapi/KeysbankapiApplicationTests.java
+/Users/kaiquesantossousa/Projects/KeysBank/back-end/src/test/java/com/backend/keysbankapi/account/AccountServiceTest.java
+/Users/kaiquesantossousa/Projects/KeysBank/back-end/src/test/java/com/backend/keysbankapi/customer/CustomerServiceTest.java
+/Users/kaiquesantossousa/Projects/KeysBank/back-end/src/test/java/com/backend/keysbankapi/ledger/TransactionServiceTest.java
