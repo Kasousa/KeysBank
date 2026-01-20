@@ -174,17 +174,14 @@ Veja **[API_DOCUMENTATION.md](./back-end/API_DOCUMENTATION.md)** para documenta�
 
 ## 🧪 Testes
 
-### Backend (JUnit 5 + Mockito)
-**24 testes unitários** cobrindo Services críticos:
+### Backend (JUnit 5)
 ```bash
 cd back-end
 mvn test
 ```
 
-**Arquivos de teste:**
-- `src/test/java/.../customer/CustomerServiceTest.java` (8 testes)
-- `src/test/java/.../account/AccountServiceTest.java` (8 testes)
-- `src/test/java/.../ledger/TransactionServiceTest.java` (8 testes)
+**Arquivo de teste:**
+- `src/test/java/com/backend/keysbankapi/KeysbankapiApplicationTests.java` - Spring Boot context test
 
 ### Frontend (Vitest + React Testing Library)
 **28 testes unitários** cobrindo componentes e hooks:
