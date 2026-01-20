@@ -347,7 +347,3 @@ npm run test       # Frontend
 4. Testar SSH manualmente: `ssh -i chave.pem ec2-user@seu-ip`
 
 ---
-
----
-
-**Status**: ✅ Pronto para Produção | **Versão**: 1.0.0 | **Data**: 20 de Janeiro de 2026
