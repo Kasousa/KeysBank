@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { LoginForm } from '../../../components/auth/LoginForm';
+import { LoginForm } from './LoginForm';
 import { BrowserRouter } from 'react-router-dom';
-import { AuthProvider } from '../../../context/AuthContext';
+import { AuthProvider } from '../../context/AuthContext';
 
 // Mock da API
-vi.mock('../../../services/api', () => ({
+vi.mock('../../services/api', () => ({
   login: vi.fn(),
 }));
 
@@ -26,7 +26,7 @@ describe('LoginForm', () => {
 
     expect(screen.getByText('Acesse sua conta')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('0001')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/343316/)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('123456')).toBeInTheDocument();
   });
 
   it('deve validar agência obrigatória', async () => {
@@ -68,7 +68,7 @@ describe('LoginForm', () => {
   it('deve validar número da conta com 6 dígitos', async () => {
     render(<LoginForm />, { wrapper: Wrapper });
 
-    const accountInput = screen.getByPlaceholderText(/343316/);
+    const accountInput = screen.getByPlaceholderText('123456');
     await userEvent.type(accountInput, '12345');
 
     const submitButton = screen.getByText('Entrar');

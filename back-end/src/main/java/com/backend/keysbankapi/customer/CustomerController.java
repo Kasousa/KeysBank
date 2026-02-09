@@ -13,7 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/customers")
+@RequestMapping("/api/customers")
 @Tag(name = "Customers", description = "Endpoints para gerenciamento de clientes do banco")
 public class CustomerController {
 

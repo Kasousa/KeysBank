@@ -1,0 +1,21 @@
+aws_region   = "sa-east-1"
+project_name = "keysbank-prod"
+
+# EC2 Key (crie antes no AWS)
+ec2_key_name = "keysbank-prod-key"
+
+# IPs permitidos para SSH (restringir ao bastion/VPN)
+ssh_allowed_cidrs = ["10.0.0.0/8"]
+
+# Configurações de produção
+ec2_instance_count          = 2
+rds_multi_az                = true
+rds_backup_retention_period = 30
+enable_nat_gateway          = true
+
+# Certificado SSL (obrigatório para produção)
+# ssl_certificate_arn = "arn:aws:acm:us-east-1:123456789012:certificate/..."
+
+# Defina no terraform.tfvars (não commitado)
+# db_username = "bankuser"
+# db_password = "your-very-secure-password"

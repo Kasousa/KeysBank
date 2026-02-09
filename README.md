@@ -1,6 +1,6 @@
 # 🏦 KeysBank - Sistema Bancário Virtual
 
-Uma plataforma bancária moderna e robusta construída com Spring Boot 4, React 19 e PostgreSQL 16. Totalmente tipada com TypeScript, documentada com OpenAPI 3.0 e pronta para produção.
+Uma plataforma bancária moderna e robusta construída com Spring Boot, React e PostgreSQL 16. Totalmente tipada com TypeScript, documentada com OpenAPI 3.0, com testes completos e pronta para produção.
 
 ## 📋 Índice
 - [Visão Geral](#visão-geral)
@@ -9,7 +9,7 @@ Uma plataforma bancária moderna e robusta construída com Spring Boot 4, React 
 - [Como Começar](#como-começar)
 - [API - Endpoints Principais](#api---endpoints-principais)
 - [Testes](#-testes)
-- [Deploy em Produção](#-deploy-em-produção)
+- [Deploy Automatizado na AWS](#-deploy-automatizado-na-aws)
 - [Troubleshooting](#troubleshooting)
 
 ---
@@ -40,8 +40,8 @@ O **KeysBank** é uma aplicação de banco virtual completa com:
 - ✅ Testes unitários
 
 ### Frontend
-- ✅ React 19 com TypeScript
-- ✅ Tailwind CSS 4 para estilização
+- ✅ React 18.3.1 com TypeScript 5.8
+- ✅ Tailwind CSS 3.4 para estilização
 - ✅ Shadcn/UI para componentes
 - ✅ React Router para navegação
 - ✅ Integração HTTP com fetch API
@@ -54,20 +54,20 @@ O **KeysBank** é uma aplicação de banco virtual completa com:
 
 | Camada | Tecnologia |
 |--------|-----------|
-| **Backend** | Java 25, Spring Boot 4.0.0, Spring Data JPA |
-| **Frontend** | React 19.2.0, TypeScript, Tailwind CSS 4 |
+| **Backend** | Java 17, Spring Boot 4.0.0, Spring Data JPA |
+| **Frontend** | React 18.3.1, TypeScript 5.8, Tailwind CSS 3.4 |
 | **Banco de Dados** | PostgreSQL 16.11 |
 | **Documentação** | OpenAPI 3.0, Swagger UI |
-| **Build** | Maven (Backend), Vite (Frontend) |
-| **Deployment** | Docker, AWS EC2 |
-| **CI/CD** | GitHub Actions |
+| **Build** | Maven (Backend), Vite 5 (Frontend) |
+| **Deployment** | Docker, AWS EC2, Terraform |
+| **Testes** | JUnit 5 (Backend), Vitest (Frontend) |
 
 ---
 
 ## 🚀 Como Começar
 
 ### Pré-requisitos
-- **Java 25+** (Backend)
+- **Java 17+** (Backend)
 - **Node.js 18+** (Frontend)
 - **PostgreSQL 16+** (Banco de Dados)
 - **Maven 3.9+** (Build Backend)
@@ -127,7 +127,7 @@ npm run dev
 ### Clientes (Customers)
 ```bash
 # Criar cliente
-POST /customers
+POST /api/customers
 {
   "name": "João Silva",
   "email": "joao@email.com"
@@ -137,19 +137,19 @@ POST /customers
 ### Contas (Accounts)
 ```bash
 # Criar conta (recebe R$ 100 de bônus)
-POST /accounts
+POST /api/accounts
 {
   "customerId": "uuid-aqui"
 }
 
 # Login (validação de conta)
-GET /accounts/login?agency=0001&accountNumber=343316
+GET /api/accounts/login?agency=0001&accountNumber=343316
 ```
 
 ### Transações
 ```bash
 # Criar transação
-POST /transaction
+POST /api/transaction
 {
   "accountId": "uuid-aqui",
   "type": "CREDIT",
@@ -162,13 +162,13 @@ POST /transaction
 ### Extrato
 ```bash
 # Visualizar extrato
-GET /accounts/{accountId}/statement
+GET /api/accounts/{accountId}/statement
 
 # Com filtros
-GET /accounts/{accountId}/statement?startDate=2026-01-01&endDate=2026-01-31&type=CREDIT
+GET /api/accounts/{accountId}/statement?startDate=2026-01-01&endDate=2026-01-31&type=CREDIT
 ```
 
-Veja **[API_DOCUMENTATION.md](./back-end/API_DOCUMENTATION.md)** para documentação completa.
+Veja **[DEPLOY_GUIDE.md](./DEPLOY_GUIDE.md)** para documentação de deploy.
 
 ---
 
@@ -184,71 +184,131 @@ mvn test
 - `src/test/java/com/backend/keysbankapi/KeysbankapiApplicationTests.java` - Spring Boot context test
 
 ### Frontend (Vitest + React Testing Library)
-**28 testes unitários** cobrindo componentes e hooks:
+**29 testes unitários** cobrindo componentes, hooks e utilitários:
 ```bash
 cd front-end
-npm run test
+npm run test:ci
 ```
 
-**Arquivos de teste:**
-- `src/utils/formatters.test.ts` (12 testes)
-- `src/components/auth/LoginForm.test.tsx` (9 testes)
-- `src/context/AuthContext.test.tsx` (7 testes)
+**Testes implementados:**
+- `src/utils/formatters.test.ts` (16 testes) - Funções de formatação
+- `src/context/AuthContext.test.tsx` (5 testes) - Hook de autenticação
+- `src/components/auth/LoginForm.test.tsx` (7 testes) - Formulário de login
+- `src/test/example.test.ts` (1 teste) - Exemplo básico
 
 ---
 
-## � Deploy em Produção
+## 🚀 Deploy Automatizado
 
-### 1. Pré-requisitos AWS
-- Conta AWS ativa
-- Chaves de acesso (Access Key ID + Secret Access Key)
-- EC2 instance (Amazon Linux 2, t3.medium, 20GB SSD)
+### Deploy Local (Docker Compose)
 
-### 2. Configurar GitHub Secrets
-No repositório, adicione em **Settings → Secrets and variables → Actions**:
-```
-AWS_ACCESS_KEY_ID          = seu-access-key
-AWS_SECRET_ACCESS_KEY      = seu-secret-key
-EC2_INSTANCE_IP            = seu-ec2-ip-publico
-EC2_PRIVATE_KEY            = conteúdo do arquivo .pem
-SLACK_WEBHOOK              = (opcional)
-```
-
-### 3. Setup EC2
 ```bash
-# SSH na instância
-ssh -i sua-chave.pem ec2-user@seu-ec2-ip
-
-# Executar setup automático
-bash /home/ec2-user/infra/ec2-setup.sh
+cd infra
+./scripts/deploy.sh local
 ```
 
-**O script instala:**
-- Java 25
-- Node.js 18
-- Docker & Docker Compose
-- PostgreSQL 16
-- Nginx (reverse proxy)
-- Scripts de deploy e rollback
+Disponibiliza:
+- Backend: http://localhost:8080
+- Frontend: http://localhost:3000
+- Database: localhost:5432
 
-### 4. Deploy Automático
+### Deploy AWS
+
 ```bash
-git push origin main
-# GitHub Actions faz o resto automaticamente!
+cd infra
+./scripts/deploy.sh aws
 ```
 
-**Acompanhe em:** GitHub → Actions → Workflow
+Este comando executa:
+- ✅ Build e testes do backend (Maven)
+- ✅ Build e testes do frontend (npm)
+- ✅ Criação/atualização da infraestrutura AWS (Terraform)
+- ✅ Deploy automático nas instâncias EC2
+- ✅ Verificação de saúde da aplicação
 
-### 5. Verificar Deploy
-```
-Frontend:  http://seu-ec2-ip
-Backend:   http://seu-ec2-ip:8080/swagger-ui.html
+### Setup Inicial - AWS
+
+```bash
+# 1. Configurar AWS CLI
+aws configure
+
+# 2. Criar chave SSH
+aws ec2 create-key-pair \
+  --key-name keysbank-dev-key \
+  --region sa-east-1 \
+  --query 'KeyMaterial' \
+  --output text > ~/.ssh/keysbank-dev-key.pem
+chmod 400 ~/.ssh/keysbank-dev-key.pem
+
+# 3. Configurar variáveis do Terraform
+cd infra/terraform/environments/dev
+cp terraform.tfvars.example terraform.tfvars
+nano terraform.tfvars  # Editar senha do banco
+
+# 4. Deploy completo
+cd ../../..
+./scripts/deploy.sh aws
 ```
 
-### Pipeline CI/CD
-Workflows automáticos em `.github/workflows/`:
-- **deploy-backend.yml**: Build → Test → Deploy → Verify → Rollback
-- **deploy-frontend.yml**: Build → Test → Deploy → Verify → Rollback
+### Infraestrutura Criada
+
+**Recursos AWS:**
+- **VPC**: Rede privada isolada com subnets públicas/privadas
+- **EC2**: Instâncias t3.small com Java 17 + Nginx
+- **RDS PostgreSQL 16**: Banco de dados gerenciado da aplicação
+- **ALB**: Load balancer para distribuir tráfego
+- **Security Groups**: Firewall configurado
+
+**Recursos Terraform (auxiliares):**
+- **S3 Bucket**: Armazena estado do Terraform (compartilhado entre devs)
+- **DynamoDB Table**: Lock para prevenir conflitos simultâneos
+
+**Custo estimado:** ~$50/mês no ambiente dev (~$20/mês com free tier)
+
+### Por que RDS e S3?
+
+**RDS PostgreSQL:**
+- É o **banco de dados da sua aplicação** Spring Boot
+- Armazena: clientes, contas, transações, saldos
+- Alternativa local: PostgreSQL no Docker Compose
+
+**S3 + DynamoDB:**
+- **NÃO são da aplicação**, são para o Terraform
+- Mantêm estado da infraestrutura sincronizado
+- Permitem múltiplos desenvolvedores trabalharem juntos
+- Custo: ~$0.50/mês (praticamente gratuito)
+
+### Atualizar Aplicação
+
+Após mudanças no código:
+
+**Local:**
+```bash
+cd infra
+./scripts/deploy.sh local
+```
+
+**AWS:**
+```bash
+cd infra
+./scripts/deploy.sh aws
+```
+
+### Destruir Ambientes
+
+**Local:**
+```bash
+cd infra
+./scripts/destroy.sh local
+```
+
+**AWS:**
+```bash
+cd infra
+./scripts/destroy.sh aws
+```
+
+📖 **Documentação completa:** [DEPLOY_GUIDE.md](DEPLOY_GUIDE.md)
 
 ---
 
@@ -267,7 +327,7 @@ KeysBank/
 │   │   ├── customer/         → Gerenciamento de clientes
 │   │   ├── account/          → Gerenciamento de contas
 │   │   └── ledger/           → Sistema de transações
-│   ├── src/test/java/        → 24 testes unitários
+│   ├── src/test/java/        → 17 testes unitários
 │   ├── pom.xml               → Dependências Maven
 │   └── openapi.json          → Documentação Swagger
 │
@@ -278,17 +338,16 @@ KeysBank/
 │   │   ├── context/          → Context API (auth)
 │   │   ├── services/         → Chamadas API
 │   │   └── utils/            → Funções utilitárias
-│   ├── src/**/*.test.ts      → 28 testes unitários
+│   ├── src/**/*.test.ts      → 29 testes unitários
 │   ├── package.json          → Dependências npm
 │   └── vite.config.ts        → Configuração build
 │
-├── .github/workflows/
-│   ├── deploy-backend.yml    → Pipeline backend
-│   └── deploy-frontend.yml   → Pipeline frontend
-│
 └── infra/
-    ├── ec2-setup.sh          → Setup EC2
-    └── docker-compose.yml    → Docker Compose
+    ├── scripts/
+    │   ├── deploy-to-aws.sh  → Deploy automatizado
+    │   └── setup-aws.sh      → Setup inicial
+    ├── terraform/            → Infraestrutura AWS
+    └── docker-compose.yml    → Docker Compose local
 ```
 
 ---
@@ -337,10 +396,17 @@ mvn test           # Backend
 npm run test       # Frontend
 ```
 
-### Problema: Deploy em GitHub Actions falhando
-1. Verificar GitHub Secrets estão corretos
-2. Acompanhar logs em **Actions** → Workflow
-3. Verificar EC2 está rodando
-4. Testar SSH manualmente: `ssh -i chave.pem ec2-user@seu-ip`
+### Problema: Deploy falhando
+```bash
+# Verificar status do script
+cd infra
+./scripts/deploy-to-aws.sh dev 2>&1 | tail -50
+
+# Testar SSH manualmente
+ssh -i ~/.ssh/keysbank-dev-key.pem ec2-user@52.67.105.85
+
+# Verificar status da aplicação em EC2
+ssh -i ~/.ssh/keysbank-dev-key.pem ec2-user@52.67.105.85 'systemctl status keysbank-backend'
+```
 
 ---

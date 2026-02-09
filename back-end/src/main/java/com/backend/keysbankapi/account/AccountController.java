@@ -14,7 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/accounts")
+@RequestMapping("/api/accounts")
 @Tag(name = "Accounts", description = "Endpoints para gerenciamento de contas bancárias")
 public class AccountController {
 

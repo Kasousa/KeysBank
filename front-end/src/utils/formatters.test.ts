@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { formatDate, formatCurrency, formatCategory, maskCurrency, getNumericValue } from '../../../utils/formatters';
+import { formatDate, formatCurrency, formatCategory, maskCurrency, getNumericValue } from './formatters';
 
 describe('formatters', () => {
   describe('formatDate', () => {

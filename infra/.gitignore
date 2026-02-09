@@ -1,0 +1,27 @@
+# Local environment variables
+.env
+
+# Terraform files
+*.tfstate
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+
+# Docker volumes
+postgres_data/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backup files
+*.backup
+*.bak
+
+# Temporary files
+tmp/
+temp/

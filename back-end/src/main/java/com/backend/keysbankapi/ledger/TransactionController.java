@@ -13,7 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/transaction")
+@RequestMapping("/api/transaction")
 @Tag(name = "Transactions", description = "Endpoints para criar e gerenciar transações bancárias")
 public class TransactionController {
 

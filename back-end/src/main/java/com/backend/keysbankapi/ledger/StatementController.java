@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/accounts")
+@RequestMapping("/api/accounts")
 @Tag(name = "Statement", description = "Endpoints para consulta de extratos e transações")
 public class StatementController {
 

@@ -1,73 +1,89 @@
-# Welcome to your Lovable project
+# KeysBank Frontend
 
-## Project info
+Frontend da aplicação KeysBank construído com React, TypeScript e Vite.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Stack Técnica
 
-## How can I edit this code?
+- **React 18** - Biblioteca UI
+- **TypeScript 5.8** - Type safety
+- **Vite 5** - Build tool e dev server
+- **Radix UI** - Componentes acessíveis
+- **TailwindCSS** - Estilização
+- **React Router** - Roteamento
+- **Vitest** - Testes unitários
 
-There are several ways of editing your application.
+## 📋 Pré-requisitos
 
-**Use Lovable**
+- Node.js 18+ e npm instalado - [instalar com nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+## 🛠️ Desenvolvimento Local
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠️ Desenvolvimento Local
 
-**Use your preferred IDE**
+```bash
+# 1. Instalar dependências
+npm install
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 2. Iniciar servidor de desenvolvimento
 npm run dev
+
+# 3. Acessar no navegador
+# http://localhost:5173
 ```
 
-**Edit a file directly in GitHub**
+## 🧪 Testes
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Executar testes unitários
+npm test
 
-**Use GitHub Codespaces**
+# Testes com coverage
+npm run test:coverage
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Testes em modo watch
+npm run test:watch
+```
 
-## What technologies are used for this project?
+## 🏗️ Build para Produção
 
-This project is built with:
+```bash
+# Build otimizado
+npm run build
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+# Preview do build
+npm run preview
+```
 
-## How can I deploy this project?
+## 📁 Estrutura do Projeto
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+```
+src/
+├── components/       # Componentes React
+│   ├── auth/        # Autenticação (Login, Signup)
+│   ├── dashboard/   # Dashboard (Balance, Transactions)
+│   ├── layout/      # Layout (Header)
+│   └── ui/          # Componentes UI (shadcn/ui)
+├── pages/           # Páginas da aplicação
+├── services/        # API clients
+├── context/         # React Context (Auth)
+├── hooks/           # Custom hooks
+├── types/           # TypeScript types
+└── utils/           # Funções utilitárias
+```
 
-## Can I connect a custom domain to my Lovable project?
+## 🔗 Integração com Backend
 
-Yes, you can!
+O frontend se comunica com o backend através da API REST:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- **Base URL Local:** `http://localhost:8080`
+- **Base URL AWS:** Configurado no ALB
+- **Endpoints:** Ver [back-end/API_DOCUMENTATION.md](../back-end/API_DOCUMENTATION.md)
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 📝 Scripts Disponíveis
+
+- `npm run dev` - Inicia servidor de desenvolvimento
+- `npm run build` - Build para produção
+- `npm run preview` - Preview do build de produção
+- `npm test` - Executa testes unitários
+- `npm run lint` - Executa ESLint
+- `npm run type-check` - Verifica tipos TypeScript

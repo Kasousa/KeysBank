@@ -19,7 +19,13 @@ public class KeysbankapiApplication {
 	@Bean
 	public CorsFilter corsFilter() {
 		CorsConfiguration config = new CorsConfiguration();
-		config.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:3001"));
+		config.setAllowedOrigins(Arrays.asList(
+			"http://localhost:3000",
+			"http://localhost:3001",
+			"http://localhost",
+			"http://localhost:80",
+			"http://keysbank-dev-alb-1785602146.sa-east-1.elb.amazonaws.com"
+		));
 		config.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
 		config.setAllowedHeaders(Arrays.asList("*"));
 		config.setAllowCredentials(true);

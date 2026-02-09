@@ -1,0 +1,18 @@
+# AWS region (ajuste conforme necessário)
+aws_region = "sa-east-1"
+
+# Nome do projeto
+project_name = "keysbank-dev"
+
+# Nome da chave SSH (crie antes no AWS EC2)
+ec2_key_name = "keysbank-dev-key"
+
+# Credenciais do banco de dados
+# IMPORTANTE: Use terraform.tfvars (gitignored) para valores sensíveis
+db_username = "bankuser"
+# db_password = "your-secure-password" # Defina no terraform.tfvars
+
+# Configurações de desenvolvimento
+rds_multi_az                = false
+rds_backup_retention_period = 0  # 0 = sem backup (necessário para free tier)
+enable_nat_gateway          = true
