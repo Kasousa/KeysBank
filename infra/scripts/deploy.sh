@@ -251,6 +251,59 @@ elif [ "$DEPLOY_TYPE" = "aws" ]; then
 
     log_success "Frontend compilado: $(du -sh dist | cut -f1)"
 
+    log_info "Configurando Nginx em cada instância..."
+    
+    # Nginx configuration file
+    read -r -d '' NGINX_CONF << 'NGINX_EOF' || true
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+
+    root /var/www/keysbank;
+    index index.html index.htm index.nginx-debian.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location /api/ {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_http_version 1.1;
+        proxy_set_header Connection "";
+        proxy_buffering off;
+    }
+
+    location /actuator/ {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /swagger-ui/ {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /v3/ {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+NGINX_EOF
+
     log_info "Enviando assets para as instâncias EC2..."
 
     for EC2_IP in $EC2_IPS; do
@@ -260,6 +313,14 @@ elif [ "$DEPLOY_TYPE" = "aws" ]; then
             "ec2-user@$EC2_IP" \
             "sudo mkdir -p /var/www/keysbank && sudo chown -R ec2-user:ec2-user /var/www/keysbank" || {
             log_error "Falha ao preparar diretório /var/www/keysbank em $EC2_IP"
+            continue
+        }
+        
+        # Configure Nginx
+        ssh -i "$KEY_PATH" -o StrictHostKeyChecking=no \
+            "ec2-user@$EC2_IP" \
+            "echo '$NGINX_CONF' | sudo tee /etc/nginx/conf.d/keysbank.conf > /dev/null && sudo nginx -t && sudo systemctl reload nginx" || {
+            log_error "Falha ao configurar Nginx em $EC2_IP"
             continue
         }
         

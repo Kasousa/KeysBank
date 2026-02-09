@@ -7,6 +7,11 @@ yum update -y
 # Install Java 17 (compatível com a aplicação)
 yum install -y java-17-amazon-corretto
 
+# Install Nginx for frontend + reverse proxy
+amazon-linux-extras install nginx1 -y
+systemctl start nginx
+systemctl enable nginx
+
 # Install Docker
 yum install docker -y
 systemctl start docker

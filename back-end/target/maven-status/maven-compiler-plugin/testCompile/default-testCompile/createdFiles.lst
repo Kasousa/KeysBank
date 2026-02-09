@@ -1,1 +1,4 @@
+com/backend/keysbankapi/account/AccountServiceTest.class
 com/backend/keysbankapi/KeysbankapiApplicationTests.class
+com/backend/keysbankapi/customer/CustomerServiceTest.class
+com/backend/keysbankapi/ledger/TransactionServiceTest.class
