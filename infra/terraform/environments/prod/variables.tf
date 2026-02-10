@@ -43,7 +43,7 @@ variable "ssh_allowed_cidrs" {
 variable "ec2_instance_type" {
   description = "EC2 instance type"
   type        = string
-  default     = "t3.medium"
+  default     = "t3.micro"
 }
 
 variable "ec2_instance_count" {

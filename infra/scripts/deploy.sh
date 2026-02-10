@@ -46,9 +46,11 @@ fi
 # DEPLOY LOCAL (Docker Compose)
 # ============================================
 if [ "$DEPLOY_TYPE" = "local" ]; then
-    log_info "════════════════════════════════════════════════════════════"
-    log_info "   KeysBank - Deploy Local (Docker Compose)"
-    log_info "════════════════════════════════════════════════════════════"
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║   🐳 KeysBank - Deploy Local (Docker Compose)             ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
 
     # ============================================
     # 1. BUILD BACKEND
@@ -56,9 +58,15 @@ if [ "$DEPLOY_TYPE" = "local" ]; then
     log_info "📦 [1/2] Building Backend..."
     cd "$PROJECT_ROOT/back-end"
 
+    log_info "Executando testes..."
+    mvn clean test -q || {
+        log_error "Testes do backend falharam!"
+        exit 1
+    }
+
     log_info "Compilando aplicação..."
     export JAVA_HOME=/opt/homebrew/opt/openjdk@17
-    mvn clean package -DskipTests -q || {
+    mvn package -DskipTests -q || {
         log_error "Build do backend falhou!"
         exit 1
     }
@@ -89,19 +97,20 @@ if [ "$DEPLOY_TYPE" = "local" ]; then
     docker-compose up -d --build
 
     if [ $? -eq 0 ]; then
-        log_success "Deploy local concluído!"
         echo ""
-        echo "Serviços disponíveis:"
-        echo "  • Backend:   http://localhost:8080"
-        echo "  • Swagger:   http://localhost:8080/swagger-ui.html"
-        echo "  • Frontend:  http://localhost:3000"
-        echo "  • Database:  localhost:5432"
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║ ✅ Deploy Local Concluído!                                ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
         echo ""
-        echo "Comando para acompanhar logs:"
-        echo "  docker-compose logs -f"
+        echo "📡 Serviços Disponíveis:"
+        echo "   • Backend:   http://localhost:8080"
+        echo "   • Frontend:  http://localhost"
+        echo "   • Database:  localhost:5432"
         echo ""
-        echo "Comando para parar:"
-        echo "  docker-compose down"
+        echo "📋 Comandos Úteis:"
+        echo "   • Ver logs:  docker-compose logs -f"
+        echo "   • Parar:     docker-compose down"
+        echo "   • Resetar:   docker-compose down -v && ./deploy.sh local"
         echo ""
     else
         log_error "Deploy local falhou!"
@@ -112,9 +121,11 @@ if [ "$DEPLOY_TYPE" = "local" ]; then
 # DEPLOY AWS (Terraform + EC2)
 # ============================================
 elif [ "$DEPLOY_TYPE" = "aws" ]; then
-    log_info "════════════════════════════════════════════════════════════"
-    log_info "   KeysBank - Deploy AWS"
-    log_info "════════════════════════════════════════════════════════════"
+    echo ""
+    echo "╔════════════════════════════════════════════════════════════╗"
+    echo "║   ☁️  KeysBank - Deploy AWS                               ║"
+    echo "╚════════════════════════════════════════════════════════════╝"
+    echo ""
 
     # ============================================
     # 1. BUILD BACKEND
@@ -155,7 +166,15 @@ elif [ "$DEPLOY_TYPE" = "aws" ]; then
     }
 
     log_info "Executando testes..."
-    npm run test:ci --silent 2>/dev/null || log_warning "Alguns testes do frontend falharam (continuando...)"
+    if [ -f "package.json" ] && grep -q "test:ci" package.json; then
+        npm run test:ci --silent || {
+            log_error "Testes do frontend falharam!"
+            exit 1
+        }
+        log_success "Testes do frontend passaram!"
+    else
+        log_warning "Nenhum script de teste encontrado no frontend (continuando...)"
+    fi
 
     # ============================================
     # 3. TERRAFORM APPLY
@@ -185,10 +204,14 @@ elif [ "$DEPLOY_TYPE" = "aws" ]; then
     ALB_DNS=$(terraform output -raw alb_dns_name 2>/dev/null || echo "unknown")
     EC2_IPS=$(terraform output -json backend_instance_ips 2>/dev/null | jq -r '.[]' || echo "")
     RDS_ENDPOINT=$(terraform output -raw rds_address 2>/dev/null || echo "unknown")
+    CLOUDFRONT_URL=$(terraform output -raw cloudfront_url 2>/dev/null || echo "unknown")
 
-    log_success "Infraestrutura aplicada!"
-    log_info "ALB DNS: $ALB_DNS"
-    log_info "RDS Endpoint: $RDS_ENDPOINT"
+    log_success "✅ Infraestrutura criada com sucesso!"
+    echo ""
+    echo "📊 Informações da Infraestrutura:"
+    echo "   • ALB DNS:      $ALB_DNS"
+    echo "   • RDS Endpoint: $RDS_ENDPOINT"
+    echo ""
 
     # ============================================
     # 4. DEPLOY BACKEND
@@ -237,9 +260,9 @@ elif [ "$DEPLOY_TYPE" = "aws" ]; then
     # ============================================
     log_info "🚀 [5/5] Build + Deploy do Frontend..."
 
-    log_info "Compilando aplicação com VITE_API_BASE_URL..."
+    log_info "Compilando aplicação com URLs relativas para CloudFront..."
     cd "$PROJECT_ROOT/front-end"
-    if ! VITE_API_BASE_URL="http://${ALB_DNS}/api" npm run build --silent; then
+    if ! VITE_API_BASE_URL="/api" npm run build --silent; then
         log_error "Build do frontend falhou!"
         exit 1
     fi
@@ -294,6 +317,14 @@ server {
         proxy_set_header X-Forwarded-Proto $scheme;
     }
 
+    location = /swagger-ui.html {
+        proxy_pass http://localhost:8080/swagger-ui.html;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
     location /v3/ {
         proxy_pass http://localhost:8080;
         proxy_set_header Host $host;
@@ -340,7 +371,7 @@ NGINX_EOF
     echo ""
     echo "Aplicação disponível em:"
     echo "  • Frontend/API: http://$ALB_DNS"
-    echo "  • Swagger UI:   http://$ALB_DNS/swagger-ui.html"
+    echo "  • CloudFront:   $CLOUDFRONT_URL"
     echo ""
     echo "Dados da infraestrutura:"
     echo "  • Instâncias EC2: $EC2_IPS"
@@ -349,6 +380,10 @@ NGINX_EOF
 
 else
     log_error "Tipo de deploy inválido: '$DEPLOY_TYPE'"
-    log_info "Use: local ou aws"
+    log_info "Tipos disponíveis: local, aws"
     exit 1
 fi
+
+echo ""
+log_success "🎉 KeysBank Deploy Finalizado!"
+echo ""
